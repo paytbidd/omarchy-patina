@@ -1,0 +1,13 @@
+#!/bin/bash
+# One-shot install: clone payton.polish and apply chrome to this machine.
+set -euo pipefail
+
+PLUGIN_URL="https://github.com/paytbidd/omarchy-polish.git"
+PLUGIN_ID="payton.polish"
+PLUGINS_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/plugins"
+
+if [[ ! -d $PLUGINS_DIR/$PLUGIN_ID/.git ]]; then
+  omarchy plugin add "$PLUGIN_URL" --yes --enable
+fi
+
+exec "$PLUGINS_DIR/$PLUGIN_ID/scripts/omarchy-polish" apply

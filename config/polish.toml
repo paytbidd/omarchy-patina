@@ -1,0 +1,25 @@
+# Polish: window chrome that rides along with any Omarchy theme.
+# Super+Space → Style → Polish toggles it. `omarchy-polish on|off|toggle`.
+
+applied = true
+
+rounding = 6
+border_size = 2
+gaps_out_top = 2
+gaps_out_right = 10
+gaps_out_bottom = 10
+gaps_out_left = 10
+
+# Unfocused border: mix this much of the theme foreground into the background.
+inactive_mix = 0.15
+
+# Push the theme accent to full saturation at the same lightness.
+saturate_accent = true
+
+glow = true
+glow_range = 10
+glow_power = 4
+# Alphas are 60% of the original Smart Tweaks recipe (0.30 / 0.20).
+glow_alpha = 0.18
+inner_glow_range = 5
+inner_glow_alpha = 0.12

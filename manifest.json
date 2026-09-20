@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "payton.polish",
+  "name": "Polish",
+  "version": "1.0.0",
+  "author": "Payton Biddington",
+  "description": "Reusable window chrome for any Omarchy theme: slight rounding, tight top gaps, and a soft hue-matched glow. Toggle it from Style.",
+  "homepage": "https://github.com/paytbidd/omarchy-polish",
+  "license": "MIT",
+  "kinds": [
+    "service"
+  ],
+  "entryPoints": {
+    "service": "Service.qml"
+  }
+}

@@ -1,0 +1,12 @@
+#!/bin/bash
+# Re-read Polish chrome after a theme change, if it is enabled.
+set -euo pipefail
+
+SCRIPT="${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/plugins/payton.polish/scripts/omarchy-polish"
+if [[ -x $SCRIPT ]]; then
+  exec "$SCRIPT" refresh
+fi
+if command -v omarchy-polish >/dev/null 2>&1; then
+  exec omarchy-polish refresh
+fi
+exit 0
