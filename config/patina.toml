@@ -8,10 +8,11 @@ applied = true
 
 rounding = 6
 border_size = 2
+# Outer gaps to the screen edge, same 2px on every side.
 gaps_out_top = 2
-gaps_out_right = 10
-gaps_out_bottom = 10
-gaps_out_left = 10
+gaps_out_right = 2
+gaps_out_bottom = 2
+gaps_out_left = 2
 
 # Inner gaps between tiles, matching the tight 2px top outer gap.
 gaps_in_top = 2

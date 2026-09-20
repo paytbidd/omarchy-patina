@@ -178,9 +178,9 @@ local rounding = tweaks.rounding or 6
 local border_size = tweaks.border_size or 2
 local gaps_out = {
   top = tweaks.gaps_out_top or 2,
-  right = tweaks.gaps_out_right or 10,
-  bottom = tweaks.gaps_out_bottom or 10,
-  left = tweaks.gaps_out_left or 10,
+  right = tweaks.gaps_out_right or 2,
+  bottom = tweaks.gaps_out_bottom or 2,
+  left = tweaks.gaps_out_left or 2,
 }
 local gaps_in = {
   top = tweaks.gaps_in_top or 2,
