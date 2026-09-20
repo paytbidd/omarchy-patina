@@ -9,7 +9,8 @@ HYPR_MARK_END="-- omarchy-patina end"
 OLD_HYPR_MARK_BEGIN="-- omarchy-polish begin"
 OLD_HYPR_MARK_END="-- omarchy-polish end"
 
-SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+SCRIPT_PATH=$(readlink -f "${BASH_SOURCE[0]}")
+SCRIPT_DIR=$(cd -- "$(dirname -- "$SCRIPT_PATH")" && pwd)
 PLUGIN_DIR=$(cd -- "$(dirname "$SCRIPT_DIR")" && pwd)
 CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 PATINA_TOML="$CONFIG_HOME/omarchy/patina.toml"
@@ -113,6 +114,7 @@ text = path.read_text()
 text = text.replace("Polish", "Patina").replace("polish.toml", "patina.toml").replace("omarchy-polish", "omarchy-patina")
 path.write_text(text)
 PY
+    rm -f "$LEGACY_POLISH_TOML"
     return
   fi
   if [[ -f $PLUGIN_DIR/config/patina.toml ]]; then
@@ -156,8 +158,7 @@ body = "".join(kept)
 if "polish.toml" in body or "Style → Polish" in body:
     body = body.replace("polish.toml", "patina.toml").replace("Style → Polish", "Style → Patina")
     path.write_text(body)
-    return
-if had_chrome:
+elif had_chrome:
     header = (
         "# Auto light/dark theme swap at sunrise and sunset.\n"
         "# Window chrome lives in patina.toml (Style → Patina).\n"
@@ -425,6 +426,7 @@ cmd_refresh() {
 
 cmd_apply() {
   ensure_patina_toml
+  rm -f "$LEGACY_POLISH_TOML"
   migrate_theme_tweaks
   restore_stock_looknfeel
   ensure_hypr_snippet
