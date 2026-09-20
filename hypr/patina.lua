@@ -1,9 +1,9 @@
--- Polish: window chrome that follows the current theme.
--- Numbers live in ~/.config/omarchy/polish.toml. This file is a no-op when
--- applied = false, so Style → Polish can restore the stock theme look.
+-- Patina: window chrome that follows the current theme.
+-- Numbers live in ~/.config/omarchy/patina.toml. This file is a no-op when
+-- applied = false, so Style → Patina can restore the stock theme look.
 
 local home = os.getenv("HOME") or ""
-local tweaks_path = home .. "/.config/omarchy/polish.toml"
+local tweaks_path = home .. "/.config/omarchy/patina.toml"
 local colors_path = home .. "/.local/state/omarchy/current/theme/colors.toml"
 
 local function parse_simple_toml(path)

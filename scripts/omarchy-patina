@@ -1,28 +1,32 @@
 #!/bin/bash
-# Apply, toggle, or remove Polish window chrome on this Omarchy machine.
+# Apply, toggle, or remove Patina window chrome on this Omarchy machine.
 
 set -euo pipefail
 
-PLUGIN_ID="payton.polish"
-HYPR_MARK_BEGIN="-- omarchy-polish begin"
-HYPR_MARK_END="-- omarchy-polish end"
-MENU_ID="style.polish"
+PLUGIN_ID="payton.patina"
+HYPR_MARK_BEGIN="-- omarchy-patina begin"
+HYPR_MARK_END="-- omarchy-patina end"
+OLD_HYPR_MARK_BEGIN="-- omarchy-polish begin"
+OLD_HYPR_MARK_END="-- omarchy-polish end"
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 PLUGIN_DIR=$(cd -- "$(dirname "$SCRIPT_DIR")" && pwd)
 CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
-POLISH_TOML="$CONFIG_HOME/omarchy/polish.toml"
+PATINA_TOML="$CONFIG_HOME/omarchy/patina.toml"
+LEGACY_POLISH_TOML="$CONFIG_HOME/omarchy/polish.toml"
 TWEAKS_TOML="$CONFIG_HOME/omarchy/theme-tweaks.toml"
 MENU_FILE="$CONFIG_HOME/omarchy/extensions/omarchy-menu.jsonc"
 HYPR_DIR="$CONFIG_HOME/hypr"
 HYPRLAND_LUA="$HYPR_DIR/hyprland.lua"
-HYPR_SNIPPET="$HYPR_DIR/polish.lua"
+HYPR_SNIPPET="$HYPR_DIR/patina.lua"
+LEGACY_HYPR_SNIPPET="$HYPR_DIR/polish.lua"
 LOCAL_BIN="$HOME/.local/bin"
-HOOK_DEST="$CONFIG_HOME/omarchy/hooks/theme-set.d/polish"
+HOOK_DEST="$CONFIG_HOME/omarchy/hooks/theme-set.d/patina"
+LEGACY_HOOK="$CONFIG_HOME/omarchy/hooks/theme-set.d/polish"
 STOCK_LOOKNFEEL="/usr/share/omarchy/config/hypr/looknfeel.lua"
 
 fail() {
-  echo "omarchy-polish: $*" >&2
+  echo "omarchy-patina: $*" >&2
   exit 1
 }
 
@@ -37,8 +41,8 @@ reload_hypr() {
 }
 
 applied_now() {
-  [[ -f $POLISH_TOML ]] || return 1
-  python3 - "$POLISH_TOML" <<'PY'
+  [[ -f $PATINA_TOML ]] || return 1
+  python3 - "$PATINA_TOML" <<'PY'
 import pathlib, sys
 path = pathlib.Path(sys.argv[1])
 in_root = True
@@ -58,8 +62,8 @@ PY
 
 set_applied() {
   local value="$1"
-  mkdir -p "$(dirname "$POLISH_TOML")"
-  python3 - "$POLISH_TOML" "$value" <<'PY'
+  mkdir -p "$(dirname "$PATINA_TOML")"
+  python3 - "$PATINA_TOML" "$value" <<'PY'
 import pathlib, sys
 path = pathlib.Path(sys.argv[1])
 val = sys.argv[2]
@@ -95,34 +99,41 @@ path.write_text("".join(out))
 PY
 }
 
-ensure_polish_toml() {
-  mkdir -p "$(dirname "$POLISH_TOML")"
-  if [[ -f $POLISH_TOML ]]; then
+ensure_patina_toml() {
+  mkdir -p "$(dirname "$PATINA_TOML")"
+  if [[ -f $PATINA_TOML ]]; then
     return
   fi
-  if [[ -f $PLUGIN_DIR/config/polish.toml ]]; then
-    cp "$PLUGIN_DIR/config/polish.toml" "$POLISH_TOML"
+  if [[ -f $LEGACY_POLISH_TOML ]]; then
+    cp "$LEGACY_POLISH_TOML" "$PATINA_TOML"
+    python3 - "$PATINA_TOML" <<'PY'
+import pathlib, sys
+path = pathlib.Path(sys.argv[1])
+text = path.read_text()
+text = text.replace("Polish", "Patina").replace("polish.toml", "patina.toml").replace("omarchy-polish", "omarchy-patina")
+path.write_text(text)
+PY
+    return
+  fi
+  if [[ -f $PLUGIN_DIR/config/patina.toml ]]; then
+    cp "$PLUGIN_DIR/config/patina.toml" "$PATINA_TOML"
   else
-    printf 'applied = true\n' >"$POLISH_TOML"
+    printf 'applied = true\n' >"$PATINA_TOML"
   fi
 }
 
 migrate_theme_tweaks() {
   [[ -f $TWEAKS_TOML ]] || return 0
-  python3 - "$TWEAKS_TOML" "$POLISH_TOML" <<'PY'
+  python3 - "$TWEAKS_TOML" <<'PY'
 import pathlib, sys
-
-tweaks_path = pathlib.Path(sys.argv[1])
-polish_path = pathlib.Path(sys.argv[2])
-text = tweaks_path.read_text()
+path = pathlib.Path(sys.argv[1])
+text = path.read_text()
 chrome_keys = {
     "rounding", "border_size", "gaps_out_top", "gaps_out_right",
     "gaps_out_bottom", "gaps_out_left", "inactive_mix", "saturate_accent",
     "glow", "glow_range", "glow_power", "glow_alpha", "inner_glow_range",
     "inner_glow_alpha",
 }
-# Keep auto-switch where theme-auto already looks. Drop chrome keys so
-# looknfeel.lua is no longer the source of truth.
 kept = []
 in_auto = False
 had_chrome = False
@@ -141,135 +152,136 @@ for raw in text.splitlines(keepends=True):
         continue
     kept.append(raw)
 
+body = "".join(kept)
+if "polish.toml" in body or "Style → Polish" in body:
+    body = body.replace("polish.toml", "patina.toml").replace("Style → Polish", "Style → Patina")
+    path.write_text(body)
+    return
 if had_chrome:
-    body = "".join(kept)
     header = (
         "# Auto light/dark theme swap at sunrise and sunset.\n"
-        "# Window chrome lives in polish.toml (Style → Polish).\n"
+        "# Window chrome lives in patina.toml (Style → Patina).\n"
     )
-    if "polish.toml" not in body:
+    if "patina.toml" not in body:
         body = header + "\n" + body.lstrip("\n")
-    tweaks_path.write_text(body)
+    path.write_text(body)
 PY
 }
 
 looknfeel_has_old_recipe() {
   [[ -f $HYPR_DIR/looknfeel.lua ]] || return 1
-  grep -q "theme-tweaks.toml\|omarchy-polish\|parse_simple_toml" "$HYPR_DIR/looknfeel.lua"
+  grep -q "theme-tweaks.toml\|omarchy-polish\|omarchy-patina\|parse_simple_toml" "$HYPR_DIR/looknfeel.lua"
 }
 
 restore_stock_looknfeel() {
   looknfeel_has_old_recipe || return 0
   [[ -f $STOCK_LOOKNFEEL ]] || return 0
-  local bak="$HYPR_DIR/looknfeel.lua.bak.polish.$(date +%s)"
+  local bak="$HYPR_DIR/looknfeel.lua.bak.patina.$(date +%s)"
   cp "$HYPR_DIR/looknfeel.lua" "$bak"
   cp "$STOCK_LOOKNFEEL" "$HYPR_DIR/looknfeel.lua"
   echo "Restored stock looknfeel.lua (backup $bak)"
 }
 
-ensure_hypr_snippet() {
-  mkdir -p "$HYPR_DIR"
-  [[ -f $PLUGIN_DIR/hypr/polish.lua ]] || fail "missing $PLUGIN_DIR/hypr/polish.lua"
-  cp "$PLUGIN_DIR/hypr/polish.lua" "$HYPR_SNIPPET"
-  [[ -f $HYPRLAND_LUA ]] || fail "missing $HYPRLAND_LUA"
-
-  python3 - "$HYPRLAND_LUA" "$HYPR_MARK_BEGIN" "$HYPR_MARK_END" <<'PY'
-import pathlib, sys
-path = pathlib.Path(sys.argv[1])
-begin, end = sys.argv[2], sys.argv[3]
-lines = path.read_text().splitlines(keepends=True)
-out = []
-i = 0
-while i < len(lines):
-    line = lines[i]
-    if begin in line:
-        i += 1
-        while i < len(lines) and end not in lines[i]:
-            i += 1
-        if i < len(lines):
-            i += 1
-        continue
-    out.append(line)
-    i += 1
-text = "".join(out).rstrip() + "\n"
-block = f"\n{begin}\nrequire(\"hypr.polish\")\n{end}\n"
-if 'require("hypr.polish")' not in text:
-    text = text.rstrip() + "\n" + block
-path.write_text(text)
-PY
-}
-
-remove_hypr_snippet() {
-  rm -f "$HYPR_SNIPPET"
+strip_hypr_marks() {
+  local begin="$1"
+  local end="$2"
   [[ -f $HYPRLAND_LUA ]] || return 0
-  python3 - "$HYPRLAND_LUA" "$HYPR_MARK_BEGIN" "$HYPR_MARK_END" <<'PY'
+  python3 - "$HYPRLAND_LUA" "$begin" "$end" <<'PY'
 import pathlib, sys
 path = pathlib.Path(sys.argv[1])
 begin, end = sys.argv[2], sys.argv[3]
 lines = path.read_text().splitlines(keepends=True)
 out, skipping = [], False
+changed = False
 for line in lines:
     if begin in line:
         skipping = True
+        changed = True
         continue
     if skipping:
         if end in line:
             skipping = False
         continue
     out.append(line)
-path.write_text("".join(out))
+if changed:
+    path.write_text("".join(out))
 PY
+}
+
+ensure_hypr_snippet() {
+  mkdir -p "$HYPR_DIR"
+  [[ -f $PLUGIN_DIR/hypr/patina.lua ]] || fail "missing $PLUGIN_DIR/hypr/patina.lua"
+  cp "$PLUGIN_DIR/hypr/patina.lua" "$HYPR_SNIPPET"
+  rm -f "$LEGACY_HYPR_SNIPPET"
+  [[ -f $HYPRLAND_LUA ]] || fail "missing $HYPRLAND_LUA"
+  strip_hypr_marks "$OLD_HYPR_MARK_BEGIN" "$OLD_HYPR_MARK_END"
+  strip_hypr_marks "$HYPR_MARK_BEGIN" "$HYPR_MARK_END"
+
+  python3 - "$HYPRLAND_LUA" "$HYPR_MARK_BEGIN" "$HYPR_MARK_END" <<'PY'
+import pathlib, sys
+path = pathlib.Path(sys.argv[1])
+begin, end = sys.argv[2], sys.argv[3]
+text = path.read_text().rstrip() + "\n"
+if 'require("hypr.patina")' not in text:
+    text = text.rstrip() + f"\n\n{begin}\nrequire(\"hypr.patina\")\n{end}\n"
+    path.write_text(text)
+PY
+}
+
+remove_hypr_snippet() {
+  rm -f "$HYPR_SNIPPET" "$LEGACY_HYPR_SNIPPET"
+  strip_hypr_marks "$HYPR_MARK_BEGIN" "$HYPR_MARK_END"
+  strip_hypr_marks "$OLD_HYPR_MARK_BEGIN" "$OLD_HYPR_MARK_END"
 }
 
 install_cli_link() {
   mkdir -p "$LOCAL_BIN"
-  ln -sfn "$PLUGIN_DIR/scripts/omarchy-polish" "$LOCAL_BIN/omarchy-polish"
-  # Old Smart Tweaks command name.
+  ln -sfn "$PLUGIN_DIR/scripts/omarchy-patina" "$LOCAL_BIN/omarchy-patina"
+  ln -sfn "$LOCAL_BIN/omarchy-patina" "$LOCAL_BIN/omarchy-polish"
   cat >"$LOCAL_BIN/omarchy-theme-tweaks" <<'WRAP'
 #!/bin/bash
 # Back-compat for the old Smart Tweaks command name.
 cmd="${1:-toggle}"
 shift || true
 case "$cmd" in
-  apply | on) exec "$(dirname "$0")/omarchy-polish" on "$@" ;;
-  *) exec "$(dirname "$0")/omarchy-polish" "$cmd" "$@" ;;
+  apply | on) exec "$(dirname "$0")/omarchy-patina" on "$@" ;;
+  *) exec "$(dirname "$0")/omarchy-patina" "$cmd" "$@" ;;
 esac
 WRAP
   chmod 755 "$LOCAL_BIN/omarchy-theme-tweaks"
 }
 
 remove_cli_link() {
-  if [[ -L $LOCAL_BIN/omarchy-polish ]]; then
+  if [[ -L $LOCAL_BIN/omarchy-patina ]]; then
     local target
-    target=$(readlink -f "$LOCAL_BIN/omarchy-polish" || true)
-    if [[ $target == *"/payton.polish/"* || $target == *"/omarchy-polish/"* ]]; then
-      rm -f "$LOCAL_BIN/omarchy-polish"
+    target=$(readlink -f "$LOCAL_BIN/omarchy-patina" || true)
+    if [[ $target == *"/payton.patina/"* || $target == *"/omarchy-patina/"* || $target == *"/omarchy-polish/"* ]]; then
+      rm -f "$LOCAL_BIN/omarchy-patina"
     fi
   fi
-  if [[ -f $LOCAL_BIN/omarchy-theme-tweaks ]] && grep -q omarchy-polish "$LOCAL_BIN/omarchy-theme-tweaks"; then
+  if [[ -L $LOCAL_BIN/omarchy-polish ]]; then
+    rm -f "$LOCAL_BIN/omarchy-polish"
+  fi
+  if [[ -f $LOCAL_BIN/omarchy-theme-tweaks ]] && grep -Eq 'omarchy-patina|omarchy-polish' "$LOCAL_BIN/omarchy-theme-tweaks"; then
     rm -f "$LOCAL_BIN/omarchy-theme-tweaks"
   fi
 }
 
 install_hook() {
-  local src="$PLUGIN_DIR/hooks/polish"
+  local src="$PLUGIN_DIR/hooks/patina"
   [[ -f $src ]] || fail "missing $src"
   mkdir -p "$(dirname "$HOOK_DEST")"
   cp "$src" "$HOOK_DEST"
   chmod 755 "$HOOK_DEST"
+  rm -f "$LEGACY_HOOK"
 }
 
 remove_hook() {
-  rm -f "$HOOK_DEST"
-}
-
-menu_polish_action() {
-  printf '%s/scripts/omarchy-polish' "$PLUGIN_DIR"
+  rm -f "$HOOK_DEST" "$LEGACY_HOOK"
 }
 
 upsert_menu() {
-  local action_bin
-  action_bin=$(menu_polish_action)
+  local action_bin="$PLUGIN_DIR/scripts/omarchy-patina"
   mkdir -p "$(dirname "$MENU_FILE")"
   python3 - "$MENU_FILE" "$action_bin" <<'PY'
 import json, pathlib, re, sys
@@ -304,24 +316,21 @@ if path.exists():
         if not isinstance(data, dict):
             data = {}
 
-# Drop the old Smart Tweaks row and the Theme action-only override that
-# made the Style menu show "style.theme" (empty label falls back to the id).
-data.pop("style.theme", None)
-data.pop("style.smart-tweaks", None)
+# Drop the Theme action-only override that made Style show "style.theme",
+# plus old Smart Tweaks / Polish rows.
+for key in ("style.theme", "style.smart-tweaks", "style.polish"):
+    data.pop(key, None)
 
-data["style.polish"] = {
+data["style.patina"] = {
     "icon": "󰃌",
-    "label": "Polish",
+    "label": "Patina",
     "description": "Slight rounding, tight top gaps, and a soft hue-matched glow",
-    "aliases": ["polish", "smart tweaks", "window chrome", "theme polish"],
+    "aliases": ["patina", "polish", "smart tweaks", "window chrome", "theme polish"],
     "action": f"{action_bin} toggle",
     "checked": f"{action_bin} --enabled",
 }
 
 body = json.dumps(data, indent=2, ensure_ascii=False)
-# json.dumps already quoted the action strings; keep JSONC trailing comma style.
-if body.endswith("\n}"):
-    pass
 path.write_text(header + body[1:] + "\n")
 PY
 }
@@ -347,7 +356,7 @@ data = json.loads(strip_jsonc(raw))
 if not isinstance(data, dict):
     raise SystemExit(0)
 changed = False
-for key in ("style.polish", "style.smart-tweaks", "style.theme"):
+for key in ("style.patina", "style.polish", "style.smart-tweaks", "style.theme"):
     if key in data:
         data.pop(key)
         changed = True
@@ -366,39 +375,39 @@ PY
 }
 
 wired() {
-  [[ -f $HYPR_SNIPPET ]] && grep -q 'require("hypr.polish")' "$HYPRLAND_LUA" 2>/dev/null
+  [[ -f $HYPR_SNIPPET ]] && grep -q 'require("hypr.patina")' "$HYPRLAND_LUA" 2>/dev/null
 }
 
 cmd_status() {
   echo "plugin:  $PLUGIN_DIR"
-  echo "config:  $POLISH_TOML"
+  echo "config:  $PATINA_TOML"
   if wired; then
     echo "wired:   yes"
   else
     echo "wired:   no"
   fi
   if applied_now; then
-    echo "polish:  on"
+    echo "patina:  on"
   else
-    echo "polish:  off"
+    echo "patina:  off"
   fi
 }
 
 cmd_on() {
-  ensure_polish_toml
+  ensure_patina_toml
   set_applied true
   reload_hypr
   if [[ ${1:-} != "--quiet" ]]; then
-    notify "Polish on"
+    notify "Patina on"
   fi
 }
 
 cmd_off() {
-  if [[ -f $POLISH_TOML ]]; then
+  if [[ -f $PATINA_TOML ]]; then
     set_applied false
   fi
   reload_hypr
-  notify "Polish off"
+  notify "Patina off"
 }
 
 cmd_toggle() {
@@ -415,7 +424,7 @@ cmd_refresh() {
 }
 
 cmd_apply() {
-  ensure_polish_toml
+  ensure_patina_toml
   migrate_theme_tweaks
   restore_stock_looknfeel
   ensure_hypr_snippet
@@ -430,7 +439,7 @@ cmd_apply() {
     echo "hyprctl configerrors:" >&2
     echo "$errors" >&2
   fi
-  echo "Polish is on. Super+Space → Style → Polish to toggle."
+  echo "Patina is on. Super+Space → Style → Patina to toggle."
 }
 
 cmd_unapply() {
@@ -438,7 +447,7 @@ cmd_unapply() {
   if [[ ${1:-} == "--purge" ]]; then
     purge=1
   fi
-  if [[ -f $POLISH_TOML ]]; then
+  if [[ -f $PATINA_TOML ]]; then
     set_applied false
   fi
   remove_hypr_snippet
@@ -451,22 +460,22 @@ cmd_unapply() {
     if [[ -d $plugins_dir/$PLUGIN_ID ]]; then
       omarchy plugin remove "$PLUGIN_ID" --yes 2>/dev/null || rm -rf "$plugins_dir/$PLUGIN_ID"
     fi
-    echo "Removed Polish. Stock theme chrome is restored."
+    echo "Removed Patina. Stock theme chrome is restored."
   else
-    echo "Unapplied Polish. Re-apply with: $SCRIPT_DIR/omarchy-polish apply"
+    echo "Unapplied Patina. Re-apply with: $SCRIPT_DIR/omarchy-patina apply"
   fi
 }
 
 usage() {
   cat <<EOF
-Usage: omarchy-polish {apply|unapply [--purge]|on|off|toggle|refresh|status|--enabled}
+Usage: omarchy-patina {apply|unapply [--purge]|on|off|toggle|refresh|status|--enabled}
 
   apply             Wire Hyprland, the Style menu, and a theme-set hook, then enable
   unapply           Remove wiring and turn chrome off
-  unapply --purge   Also remove the payton.polish plugin
-  on | off | toggle Enable or disable chrome (Style → Polish)
-  refresh           Reload Hyprland if Polish is on (theme-set hook)
-  status            Show whether Polish is wired and enabled
+  unapply --purge   Also remove the payton.patina plugin
+  on | off | toggle Enable or disable chrome (Style → Patina)
+  refresh           Reload Hyprland if Patina is on (theme-set hook)
+  status            Show whether Patina is wired and enabled
   --enabled         Exit 0 if chrome is on
 EOF
 }

@@ -1,0 +1,12 @@
+#!/bin/bash
+# Re-read Patina chrome after a theme change, if it is enabled.
+set -euo pipefail
+
+SCRIPT="${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/plugins/payton.patina/scripts/omarchy-patina"
+if [[ -x $SCRIPT ]]; then
+  exec "$SCRIPT" refresh
+fi
+if command -v omarchy-patina >/dev/null 2>&1; then
+  exec omarchy-patina refresh
+fi
+exit 0

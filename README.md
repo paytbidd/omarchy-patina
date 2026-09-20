@@ -1,43 +1,43 @@
-# Omarchy Polish
+# Omarchy Patina
 
 Reusable window chrome for any [Omarchy](https://omarchy.org/) theme: slight rounding, a 2px border, tight gaps under the top bar, a mixed unfocused border, and a **soft hue-matched glow**.
 
-Toggle it from **Super+Space → Style → Polish**. Turning it off restores the stock theme look. Removing the plugin takes the Style row with it.
+Toggle it from **Super+Space → Style → Patina**. Turning it off restores the stock theme look. Removing the plugin takes the Style row with it.
 
 ## Install
 
 One shot:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/paytbidd/omarchy-polish/main/install | bash
+curl -fsSL https://raw.githubusercontent.com/paytbidd/omarchy-patina/main/install | bash
 ```
 
 Or the Omarchy form, then apply:
 
 ```bash
-omarchy plugin add https://github.com/paytbidd/omarchy-polish.git --yes --enable
-~/.config/omarchy/plugins/payton.polish/scripts/omarchy-polish apply
+omarchy plugin add https://github.com/paytbidd/omarchy-patina.git --yes --enable
+~/.config/omarchy/plugins/payton.patina/scripts/omarchy-patina apply
 ```
 
 That will:
 
 1. Enable the plugin
-2. Drop `~/.config/hypr/polish.lua` and load it from `hyprland.lua`
-3. Write `~/.config/omarchy/polish.toml` if you do not already have one
-4. Add **Style → Polish** (and restore the stock **Theme** row if a previous override hid the label)
+2. Drop `~/.config/hypr/patina.lua` and load it from `hyprland.lua`
+3. Write `~/.config/omarchy/patina.toml` if you do not already have one
+4. Add **Style → Patina** (and restore the stock **Theme** row if a previous override hid the label)
 5. Re-apply chrome after `omarchy theme set` via a `theme-set` hook
 
-Numbers live in `~/.config/omarchy/polish.toml`. Glow alphas default to 60% of the earlier Smart Tweaks recipe.
+Numbers live in `~/.config/omarchy/patina.toml`. Glow alphas default to 60% of the earlier Smart Tweaks recipe.
 
 ## Toggle
 
-Super+Space → Style → Polish, or:
+Super+Space → Style → Patina, or:
 
 ```bash
-omarchy-polish toggle
-omarchy-polish on
-omarchy-polish off
-omarchy-polish --enabled
+omarchy-patina toggle
+omarchy-patina on
+omarchy-patina off
+omarchy-patina --enabled
 ```
 
 ## Unapply
@@ -45,32 +45,32 @@ omarchy-polish --enabled
 Chrome off, keep the plugin:
 
 ```bash
-~/.config/omarchy/plugins/payton.polish/scripts/omarchy-polish off
+~/.config/omarchy/plugins/payton.patina/scripts/omarchy-patina off
 ```
 
-Tweaks off and remove Polish itself:
+Tweaks off and remove Patina itself:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/paytbidd/omarchy-polish/main/uninstall | bash
+curl -fsSL https://raw.githubusercontent.com/paytbidd/omarchy-patina/main/uninstall | bash
 ```
 
 or:
 
 ```bash
-~/.config/omarchy/plugins/payton.polish/scripts/omarchy-polish unapply --purge
+~/.config/omarchy/plugins/payton.patina/scripts/omarchy-patina unapply --purge
 ```
 
-Your `polish.toml` is left in place so a reinstall keeps your numbers.
+Your `patina.toml` is left in place so a reinstall keeps your numbers.
 
 ## Update
 
 ```bash
-omarchy plugin update payton.polish
-~/.config/omarchy/plugins/payton.polish/scripts/omarchy-polish apply
+omarchy plugin update payton.patina
+~/.config/omarchy/plugins/payton.patina/scripts/omarchy-patina apply
 ```
 
 ## Status
 
 ```bash
-~/.config/omarchy/plugins/payton.polish/scripts/omarchy-polish status
+~/.config/omarchy/plugins/payton.patina/scripts/omarchy-patina status
 ```
