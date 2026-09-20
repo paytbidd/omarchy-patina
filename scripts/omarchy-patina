@@ -24,7 +24,8 @@ LEGACY_HYPR_SNIPPET="$HYPR_DIR/polish.lua"
 LOCAL_BIN="$HOME/.local/bin"
 HOOK_DEST="$CONFIG_HOME/omarchy/hooks/theme-set.d/patina"
 LEGACY_HOOK="$CONFIG_HOME/omarchy/hooks/theme-set.d/polish"
-STOCK_LOOKNFEEL="/usr/share/omarchy/config/hypr/looknfeel.lua"
+LIB="$SCRIPT_DIR/lib.py"
+TOML_CREATED=0
 
 fail() {
   echo "omarchy-patina: $*" >&2
@@ -103,8 +104,10 @@ PY
 ensure_patina_toml() {
   mkdir -p "$(dirname "$PATINA_TOML")"
   if [[ -f $PATINA_TOML ]]; then
+    TOML_CREATED=0
     return
   fi
+  TOML_CREATED=1
   if [[ -f $LEGACY_POLISH_TOML ]]; then
     cp "$LEGACY_POLISH_TOML" "$PATINA_TOML"
     python3 - "$PATINA_TOML" <<'PY'
@@ -126,61 +129,7 @@ PY
 
 migrate_theme_tweaks() {
   [[ -f $TWEAKS_TOML ]] || return 0
-  python3 - "$TWEAKS_TOML" <<'PY'
-import pathlib, sys
-path = pathlib.Path(sys.argv[1])
-text = path.read_text()
-chrome_keys = {
-    "rounding", "border_size", "gaps_out_top", "gaps_out_right",
-    "gaps_out_bottom", "gaps_out_left", "inactive_mix", "saturate_accent",
-    "glow", "glow_range", "glow_power", "glow_alpha", "inner_glow_range",
-    "inner_glow_alpha",
-}
-kept = []
-in_auto = False
-had_chrome = False
-for raw in text.splitlines(keepends=True):
-    stripped = raw.strip()
-    if stripped.startswith("["):
-        name = stripped.strip("[]").strip()
-        in_auto = name == "auto"
-        kept.append(raw)
-        continue
-    key = stripped.split("=", 1)[0].strip() if "=" in stripped else ""
-    if not in_auto and key in chrome_keys:
-        had_chrome = True
-        continue
-    if not in_auto and key == "applied":
-        continue
-    kept.append(raw)
-
-body = "".join(kept)
-if "polish.toml" in body or "Style → Polish" in body:
-    body = body.replace("polish.toml", "patina.toml").replace("Style → Polish", "Style → Patina")
-    path.write_text(body)
-elif had_chrome:
-    header = (
-        "# Auto light/dark theme swap at sunrise and sunset.\n"
-        "# Window chrome lives in patina.toml (Style → Patina).\n"
-    )
-    if "patina.toml" not in body:
-        body = header + "\n" + body.lstrip("\n")
-    path.write_text(body)
-PY
-}
-
-looknfeel_has_old_recipe() {
-  [[ -f $HYPR_DIR/looknfeel.lua ]] || return 1
-  grep -q "theme-tweaks.toml\|omarchy-polish\|omarchy-patina\|parse_simple_toml" "$HYPR_DIR/looknfeel.lua"
-}
-
-restore_stock_looknfeel() {
-  looknfeel_has_old_recipe || return 0
-  [[ -f $STOCK_LOOKNFEEL ]] || return 0
-  local bak="$HYPR_DIR/looknfeel.lua.bak.patina.$(date +%s)"
-  cp "$HYPR_DIR/looknfeel.lua" "$bak"
-  cp "$STOCK_LOOKNFEEL" "$HYPR_DIR/looknfeel.lua"
-  echo "Restored stock looknfeel.lua (backup $bak)"
+  python3 "$LIB" migrate-tweaks "$TWEAKS_TOML"
 }
 
 strip_hypr_marks() {
@@ -238,8 +187,17 @@ remove_hypr_snippet() {
 install_cli_link() {
   mkdir -p "$LOCAL_BIN"
   ln -sfn "$PLUGIN_DIR/scripts/omarchy-patina" "$LOCAL_BIN/omarchy-patina"
-  ln -sfn "$LOCAL_BIN/omarchy-patina" "$LOCAL_BIN/omarchy-polish"
-  cat >"$LOCAL_BIN/omarchy-theme-tweaks" <<'WRAP'
+  if [[ -e $LOCAL_BIN/omarchy-polish && ! -L $LOCAL_BIN/omarchy-polish ]]; then
+    echo "omarchy-patina: leaving existing $LOCAL_BIN/omarchy-polish in place"
+  else
+    ln -sfn "$LOCAL_BIN/omarchy-patina" "$LOCAL_BIN/omarchy-polish"
+  fi
+  local tweaks="$LOCAL_BIN/omarchy-theme-tweaks"
+  if [[ -e $tweaks ]] && ! grep -Eq 'omarchy-patina|omarchy-polish|Smart Tweaks' "$tweaks"; then
+    echo "omarchy-patina: leaving existing $tweaks in place"
+    return
+  fi
+  cat >"$tweaks" <<'WRAP'
 #!/bin/bash
 # Back-compat for the old Smart Tweaks command name.
 cmd="${1:-toggle}"
@@ -249,7 +207,7 @@ case "$cmd" in
   *) exec "$(dirname "$0")/omarchy-patina" "$cmd" "$@" ;;
 esac
 WRAP
-  chmod 755 "$LOCAL_BIN/omarchy-theme-tweaks"
+  chmod 755 "$tweaks"
 }
 
 remove_cli_link() {
@@ -282,97 +240,13 @@ remove_hook() {
 }
 
 upsert_menu() {
-  local action_bin="$PLUGIN_DIR/scripts/omarchy-patina"
   mkdir -p "$(dirname "$MENU_FILE")"
-  python3 - "$MENU_FILE" "$action_bin" <<'PY'
-import json, pathlib, re, sys
-
-path = pathlib.Path(sys.argv[1])
-action_bin = sys.argv[2]
-header = """{
-  // Extend the Quickshell Omarchy menu with JSONC.
-  //
-  // IDs are object keys. The parent is inferred from the dotted id.
-  // Existing fields are kept unless overridden.
-
-"""
-
-def strip_jsonc(raw: str) -> str:
-    out = []
-    for line in raw.splitlines():
-        stripped = line.lstrip()
-        if stripped.startswith("//"):
-            continue
-        out.append(line)
-    text = "\n".join(out)
-    text = re.sub(r",(\s*[}\]])", r"\1", text)
-    return text
-
-data = {}
-if path.exists():
-    raw = path.read_text()
-    stripped = strip_jsonc(raw).strip()
-    if stripped:
-        data = json.loads(stripped)
-        if not isinstance(data, dict):
-            data = {}
-
-# Drop the Theme action-only override that made Style show "style.theme",
-# plus old Smart Tweaks / Polish rows.
-for key in ("style.theme", "style.smart-tweaks", "style.polish"):
-    data.pop(key, None)
-
-data["style.patina"] = {
-    "icon": "󰃌",
-    "label": "Patina",
-    "description": "Slight rounding, tight top gaps, and a soft hue-matched glow",
-    "aliases": ["patina", "polish", "smart tweaks", "window chrome", "theme polish"],
-    "action": f"{action_bin} toggle",
-    "checked": f"{action_bin} --enabled",
-}
-
-body = json.dumps(data, indent=2, ensure_ascii=False)
-path.write_text(header + body[1:] + "\n")
-PY
+  python3 "$LIB" menu-upsert "$MENU_FILE" "$PLUGIN_DIR/scripts/omarchy-patina"
 }
 
 remove_menu() {
   [[ -f $MENU_FILE ]] || return 0
-  python3 - "$MENU_FILE" <<'PY'
-import json, pathlib, re, sys
-path = pathlib.Path(sys.argv[1])
-raw = path.read_text()
-
-def strip_jsonc(raw: str) -> str:
-    out = []
-    for line in raw.splitlines():
-        stripped = line.lstrip()
-        if stripped.startswith("//"):
-            continue
-        out.append(line)
-    text = "\n".join(out)
-    return re.sub(r",(\s*[}\]])", r"\1", text)
-
-data = json.loads(strip_jsonc(raw))
-if not isinstance(data, dict):
-    raise SystemExit(0)
-changed = False
-for key in ("style.patina", "style.polish", "style.smart-tweaks", "style.theme"):
-    if key in data:
-        data.pop(key)
-        changed = True
-if not changed:
-    raise SystemExit(0)
-header = """{
-  // Extend the Quickshell Omarchy menu with JSONC.
-  //
-  // IDs are object keys. The parent is inferred from the dotted id.
-  // Existing fields are kept unless overridden.
-
-"""
-body = json.dumps(data, indent=2, ensure_ascii=False)
-path.write_text(header + body[1:] + "\n")
-PY
+  python3 "$LIB" menu-remove "$MENU_FILE"
 }
 
 wired() {
@@ -427,8 +301,10 @@ cmd_refresh() {
 cmd_apply() {
   ensure_patina_toml
   rm -f "$LEGACY_POLISH_TOML"
+  if (( TOML_CREATED )); then
+    python3 "$LIB" write-flags "$PATINA_TOML" "$HYPR_DIR"
+  fi
   migrate_theme_tweaks
-  restore_stock_looknfeel
   ensure_hypr_snippet
   install_cli_link
   install_hook

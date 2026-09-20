@@ -1,6 +1,7 @@
 -- Patina: window chrome that follows the current theme.
 -- Numbers live in ~/.config/omarchy/patina.toml. This file is a no-op when
 -- applied = false, so Style → Patina can restore the stock theme look.
+-- manage_* = false skips keys the user already set in looknfeel.lua.
 
 local home = os.getenv("HOME") or ""
 local tweaks_path = home .. "/.config/omarchy/patina.toml"
@@ -191,6 +192,19 @@ if glow_enabled == nil then
   glow_enabled = true
 end
 
+local function managed(key)
+  local value = tweaks[key]
+  if value == nil then
+    return true
+  end
+  return value
+end
+
+local manage_rounding = managed("manage_rounding")
+local manage_gaps = managed("manage_gaps")
+local manage_borders = managed("manage_borders")
+local manage_glow = managed("manage_glow")
+
 local background = parse_hex(theme.background) or { r = 1, g = 1, b = 1 }
 local foreground = parse_hex(theme.foreground) or { r = 0, g = 0, b = 0 }
 local accent = parse_hex(theme.accent) or parse_hex(theme.blue) or { r = 0, g = 0.36, b = 0.65 }
@@ -203,40 +217,51 @@ local inactive_border_color = rgb_string(inactive_color)
 local active_glow_color = rgba_string(active_color, tweaks.glow_alpha or 0.18)
 local inner_glow_color = rgba_string(active_color, tweaks.inner_glow_alpha or 0.12)
 
-hl.config({
-  general = {
-    border_size = border_size,
-    gaps_out = gaps_out,
-    col = {
+if manage_gaps or manage_borders then
+  local general = {}
+  local group = {}
+  if manage_gaps then
+    general.gaps_out = gaps_out
+  end
+  if manage_borders then
+    general.border_size = border_size
+    general.col = {
       inactive_border = inactive_border_color,
       active_border = active_border_color,
-    },
-  },
-  group = {
-    col = {
+    }
+    group.col = {
       border_inactive = inactive_border_color,
       border_active = active_border_color,
-    },
-  },
-})
+    }
+  end
+  local block = { general = general }
+  if manage_borders then
+    block.group = group
+  end
+  hl.config(block)
+end
 
-hl.config({
-  decoration = {
-    rounding = rounding,
-    shadow = {
+if manage_rounding or manage_glow then
+  local decoration = {}
+  if manage_rounding then
+    decoration.rounding = rounding
+  end
+  if manage_glow then
+    decoration.shadow = {
       enabled = glow_enabled,
       range = tweaks.glow_range or 10,
       render_power = tweaks.glow_power or 4,
       offset = { 0, 0 },
       color = active_glow_color,
       color_inactive = no_glow_color,
-    },
-    glow = {
+    }
+    decoration.glow = {
       enabled = glow_enabled,
       range = tweaks.inner_glow_range or 5,
       render_power = tweaks.glow_power or 4,
       color = inner_glow_color,
       color_inactive = no_glow_color,
-    },
-  },
-})
+    }
+  end
+  hl.config({ decoration = decoration })
+end

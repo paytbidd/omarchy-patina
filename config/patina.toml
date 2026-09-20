@@ -1,5 +1,8 @@
 # Patina: window chrome that rides along with any Omarchy theme.
 # Super+Space → Style → Patina toggles it. `omarchy-patina on|off|toggle`.
+#
+# Install never replaces looknfeel.lua. If you already set rounding, gaps,
+# borders, or glow there, apply writes manage_* = false so those stay yours.
 
 applied = true
 

@@ -22,12 +22,14 @@ omarchy plugin add https://github.com/paytbidd/omarchy-patina.git --yes --enable
 That will:
 
 1. Enable the plugin
-2. Drop `~/.config/hypr/patina.lua` and load it from `hyprland.lua`
+2. Drop `~/.config/hypr/patina.lua` and load it from `hyprland.lua` (a marked block only; the rest of `hyprland.lua` is left alone)
 3. Write `~/.config/omarchy/patina.toml` if you do not already have one
-4. Add **Style → Patina** (and restore the stock **Theme** row if a previous override hid the label)
+4. Add **Style → Patina** without rewriting your other menu rows
 5. Re-apply chrome after `omarchy theme set` via a `theme-set` hook
 
-Numbers live in `~/.config/omarchy/patina.toml`. Glow alphas default to 60% of the earlier Smart Tweaks recipe.
+Install does **not** replace `looknfeel.lua`, `shell.toml`, or an existing `patina.toml`. If you already set rounding, gaps, borders, or glow in your Hyprland Lua, Patina leaves those keys alone and only adds what you have not set (usually the hue-matched glow).
+
+Numbers live in `~/.config/omarchy/patina.toml`. Glow alphas default to 60% of the earlier Smart Tweaks recipe. Set `manage_rounding` / `manage_gaps` / `manage_borders` / `manage_glow` to `false` to keep your own values.
 
 ## Toggle
 
