@@ -182,6 +182,12 @@ local gaps_out = {
   bottom = tweaks.gaps_out_bottom or 10,
   left = tweaks.gaps_out_left or 10,
 }
+local gaps_in = {
+  top = tweaks.gaps_in_top or 5,
+  right = tweaks.gaps_in_right or 2,
+  bottom = tweaks.gaps_in_bottom or 5,
+  left = tweaks.gaps_in_left or 2,
+}
 local inactive_mix = tweaks.inactive_mix or 0.15
 local saturate_accent = tweaks.saturate_accent
 if saturate_accent == nil then
@@ -222,6 +228,7 @@ if manage_gaps or manage_borders then
   local group = {}
   if manage_gaps then
     general.gaps_out = gaps_out
+    general.gaps_in = gaps_in
   end
   if manage_borders then
     general.border_size = border_size
