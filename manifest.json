@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "id": "payton.patina",
   "name": "Patina",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "author": "Payton Biddington",
-  "description": "Reusable window chrome for any Omarchy theme: slight rounding, tight top and between-tile gaps, and a soft hue-matched glow. Toggle it from Style.",
+  "description": "Reusable window chrome for any Omarchy theme: slight rounding, tight gaps between tiles, and a soft hue-matched glow. Toggle it from Style.",
   "homepage": "https://github.com/paytbidd/omarchy-patina",
   "license": "MIT",
   "kinds": [

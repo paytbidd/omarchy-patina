@@ -183,9 +183,9 @@ local gaps_out = {
   left = tweaks.gaps_out_left or 10,
 }
 local gaps_in = {
-  top = tweaks.gaps_in_top or 5,
+  top = tweaks.gaps_in_top or 2,
   right = tweaks.gaps_in_right or 2,
-  bottom = tweaks.gaps_in_bottom or 5,
+  bottom = tweaks.gaps_in_bottom or 2,
   left = tweaks.gaps_in_left or 2,
 }
 local inactive_mix = tweaks.inactive_mix or 0.15

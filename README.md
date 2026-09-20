@@ -1,6 +1,6 @@
 # Omarchy Patina
 
-Reusable window chrome for any [Omarchy](https://omarchy.org/) theme: slight rounding, a 2px border, tight gaps under the top bar and between side-by-side tiles, a mixed unfocused border, and a **soft hue-matched glow**.
+Reusable window chrome for any [Omarchy](https://omarchy.org/) theme: slight rounding, a 2px border, tight gaps under the top bar and between tiles, a mixed unfocused border, and a **soft hue-matched glow**.
 
 Toggle it from **Super+Space → Style → Patina**. Turning it off restores the stock theme look. Removing the plugin takes the Style row with it.
 
