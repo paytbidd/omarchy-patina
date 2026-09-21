@@ -2,15 +2,17 @@
   "schemaVersion": 1,
   "id": "payton.patina",
   "name": "Patina",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "author": "Payton Biddington",
-  "description": "Reusable window chrome for any Omarchy theme: slight rounding, Tight/Default/Loose gaps, and a soft hue-matched glow. Toggle it from Style.",
+  "description": "Window chrome control panel: gaps, corners, border width, and glow. Toggle from Style.",
   "homepage": "https://github.com/paytbidd/omarchy-patina",
   "license": "MIT",
   "kinds": [
-    "service"
+    "service",
+    "panel"
   ],
   "entryPoints": {
-    "service": "Service.qml"
+    "service": "Service.qml",
+    "panel": "Panel.qml"
   }
 }

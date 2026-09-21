@@ -174,8 +174,28 @@ if not applied then
   return
 end
 
-local rounding = tweaks.rounding or 6
+local function preset_rounding()
+  local name = tweaks.corners
+  if name == "sharp" then
+    return 0
+  end
+  if name == "round" then
+    return 12
+  end
+  if name == "soft" then
+    return 6
+  end
+  return 6
+end
+
+local rounding = tweaks.rounding or preset_rounding()
 local border_size = tweaks.border_size or 2
+if border_size < 1 then
+  border_size = 1
+end
+if border_size > 16 then
+  border_size = 16
+end
 
 local function preset_gap(kind)
   local name = tweaks.gaps

@@ -267,6 +267,48 @@ cmd_status() {
     echo "patina:  off"
   fi
   echo "gaps:    $(python3 "$LIB" gaps-get "$PATINA_TOML")"
+  echo "corners: $(python3 "$LIB" corners-get "$PATINA_TOML")"
+}
+
+cmd_get() {
+  python3 "$LIB" state-get "$PATINA_TOML"
+}
+
+cmd_set() {
+  ensure_patina_toml
+  if [[ ${1:-} == --json ]]; then
+    python3 "$LIB" state-set "$PATINA_TOML" "${2:-{}}"
+  else
+    python3 "$LIB" state-set-args "$PATINA_TOML" "$@"
+  fi
+  reload_hypr
+}
+
+cmd_panel() {
+  omarchy-shell shell summon payton.patina '{}' >/dev/null 2>&1 ||
+    fail "could not open the Patina panel"
+}
+
+cmd_corners() {
+  local preset="${1:-}"
+  case "$preset" in
+    "" | --get)
+      python3 "$LIB" corners-get "$PATINA_TOML"
+      ;;
+    --is)
+      python3 "$LIB" corners-is "$PATINA_TOML" "${2:-}"
+      ;;
+    sharp | soft | round)
+      ensure_patina_toml
+      python3 "$LIB" corners-set "$PATINA_TOML" "$preset"
+      reload_hypr
+      notify "Corners: $preset"
+      echo "Corners: $preset"
+      ;;
+    *)
+      fail "unknown corner preset '$preset' (sharp, soft, round)"
+      ;;
+  esac
 }
 
 cmd_gaps() {
@@ -344,7 +386,7 @@ cmd_apply() {
     echo "hyprctl configerrors:" >&2
     echo "$errors" >&2
   fi
-  echo "Patina is on. Super+Space → Style → Patina to toggle."
+  echo "Patina is on. Super+Space → Style → Patina opens the control panel."
 }
 
 cmd_unapply() {
@@ -373,14 +415,18 @@ cmd_unapply() {
 
 usage() {
   cat <<EOF
-Usage: omarchy-patina {apply|unapply [--purge]|on|off|toggle|gaps|refresh|status|--enabled}
+Usage: omarchy-patina {apply|unapply [--purge]|on|off|toggle|panel|gaps|corners|get|set|refresh|status|--enabled}
 
   apply             Wire Hyprland, the Style menu, and a theme-set hook, then enable
   unapply           Remove wiring and turn chrome off
   unapply --purge   Also remove the payton.patina plugin
-  on | off | toggle Enable or disable chrome (Style → Patina)
-  gaps [tight|default|loose]  Set or print the gap preset (Style → Gaps)
-  refresh           Reload Hyprland if Patina is on (theme-set hook)
+  panel             Open the Patina control panel
+  on | off | toggle Enable or disable chrome
+  gaps [tight|default|loose]     Gap preset
+  corners [sharp|soft|round]     Corner radius preset
+  get --json        Current settings as JSON
+  set [--json]      Write settings and reload Hyprland
+  refresh           Reload Hyprland if Patina is on
   status            Show whether Patina is wired and enabled
   --enabled         Exit 0 if chrome is on
 EOF
@@ -394,7 +440,16 @@ case "${1:-}" in
     ;;
   off | clear) cmd_off ;;
   toggle) cmd_toggle ;;
+  panel) cmd_panel ;;
   gaps) cmd_gaps "${2:-}" "${3:-}" ;;
+  corners) cmd_corners "${2:-}" "${3:-}" ;;
+  get)
+    cmd_get
+    ;;
+  set)
+    shift
+    cmd_set "$@"
+    ;;
   refresh) cmd_refresh ;;
   status) cmd_status ;;
   --enabled)

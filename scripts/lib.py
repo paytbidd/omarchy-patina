@@ -180,6 +180,105 @@ def _root_toml_map(path: Path) -> dict:
     return data
 
 
+ROUNDING_PRESETS = {
+    "sharp": 0,
+    "soft": 6,
+    "round": 12,
+}
+
+
+def rounding_preset_values(name: str) -> dict:
+    if name not in ROUNDING_PRESETS:
+        raise ValueError(f"unknown corner preset: {name}")
+    return {
+        "corners": name,
+        "rounding": ROUNDING_PRESETS[name],
+        "manage_rounding": True,
+    }
+
+
+def set_rounding_preset(toml_path: Path, name: str) -> None:
+    upsert_toml_root(toml_path, rounding_preset_values(name))
+
+
+def current_rounding_preset(toml_path: Path) -> str:
+    data = _root_toml_map(toml_path)
+    named = str(data.get("corners") or "").strip().lower()
+    if named in ROUNDING_PRESETS:
+        return named
+    rounding = data.get("rounding")
+    for name, value in ROUNDING_PRESETS.items():
+        if rounding == value:
+            return name
+    return "custom"
+
+
+def _as_bool(value) -> bool:
+    if isinstance(value, bool):
+        return value
+    text = str(value).strip().lower()
+    if text in ("1", "true", "on", "yes"):
+        return True
+    if text in ("0", "false", "off", "no"):
+        return False
+    raise ValueError(f"not a boolean: {value}")
+
+
+def read_state(toml_path: Path) -> dict:
+    data = _root_toml_map(toml_path)
+    applied = data.get("applied")
+    if applied is None:
+        applied = True
+    glow = data.get("glow")
+    if glow is None:
+        glow = True
+    try:
+        rounding = int(data.get("rounding", 6))
+    except (TypeError, ValueError):
+        rounding = 6
+    try:
+        border = int(data.get("border_size", 2))
+    except (TypeError, ValueError):
+        border = 2
+    border = max(1, min(16, border))
+    return {
+        "applied": bool(applied),
+        "gaps": current_gap_preset(toml_path),
+        "corners": current_rounding_preset(toml_path),
+        "rounding": rounding,
+        "border_size": border,
+        "glow": bool(glow),
+    }
+
+
+def apply_updates(toml_path: Path, updates: dict) -> dict:
+    values: dict = {}
+    if "applied" in updates:
+        values["applied"] = _as_bool(updates["applied"])
+    if "glow" in updates:
+        values["glow"] = _as_bool(updates["glow"])
+        values["manage_glow"] = True
+    if "border_size" in updates or "border-size" in updates:
+        raw = updates.get("border_size", updates.get("border-size"))
+        values["border_size"] = max(1, min(16, int(raw)))
+        values["manage_borders"] = True
+    if "gaps" in updates:
+        values.update(gap_preset_values(str(updates["gaps"])))
+    if "corners" in updates:
+        values.update(rounding_preset_values(str(updates["corners"])))
+    elif "rounding" in updates:
+        rounding = max(0, min(24, int(updates["rounding"])))
+        values["rounding"] = rounding
+        values["manage_rounding"] = True
+        for name, px in ROUNDING_PRESETS.items():
+            if px == rounding:
+                values["corners"] = name
+                break
+    if values:
+        upsert_toml_root(toml_path, values)
+    return read_state(toml_path)
+
+
 def current_gap_preset(toml_path: Path) -> str:
     data = _root_toml_map(toml_path)
     named = str(data.get("gaps") or "").strip().lower()
@@ -396,7 +495,7 @@ def upsert_menu(path: Path, action_bin: str) -> None:
     entry = {
         "icon": "󰃌",
         "label": "Patina",
-        "description": "Slight rounding, gap presets, and a soft hue-matched glow",
+        "description": "Gaps, corners, border, and glow",
         "aliases": [
             "patina",
             "polish",
@@ -404,7 +503,7 @@ def upsert_menu(path: Path, action_bin: str) -> None:
             "window chrome",
             "theme polish",
         ],
-        "action": f"{action_bin} toggle",
+        "action": f"{action_bin} panel",
         "checked": f"{action_bin} --enabled",
     }
     text = insert_jsonc_key(text, "style.patina", entry)
@@ -506,6 +605,41 @@ def main(argv: list[str]) -> int:
         return 0
     if cmd == "gaps-is":
         return 0 if current_gap_preset(Path(argv[2])) == argv[3] else 1
+    if cmd == "corners-set":
+        set_rounding_preset(Path(argv[2]), argv[3])
+        return 0
+    if cmd == "corners-get":
+        sys.stdout.write(current_rounding_preset(Path(argv[2])) + "\n")
+        return 0
+    if cmd == "corners-is":
+        return 0 if current_rounding_preset(Path(argv[2])) == argv[3] else 1
+    if cmd == "state-get":
+        json.dump(read_state(Path(argv[2])), sys.stdout)
+        sys.stdout.write("\n")
+        return 0
+    if cmd == "state-set":
+        updates = json.loads(argv[3]) if len(argv) > 3 else json.loads(sys.stdin.read() or "{}")
+        if not isinstance(updates, dict):
+            print("state-set expects a JSON object", file=sys.stderr)
+            return 2
+        json.dump(apply_updates(Path(argv[2]), updates), sys.stdout)
+        sys.stdout.write("\n")
+        return 0
+    if cmd == "state-set-args":
+        path = Path(argv[2])
+        args = argv[3:]
+        updates = {}
+        i = 0
+        while i < len(args):
+            key = args[i].lstrip("-").replace("-", "_")
+            if i + 1 >= len(args):
+                print(f"missing value for {args[i]}", file=sys.stderr)
+                return 2
+            updates[key] = args[i + 1]
+            i += 2
+        json.dump(apply_updates(path, updates), sys.stdout)
+        sys.stdout.write("\n")
+        return 0
     print(f"unknown command: {cmd}", file=sys.stderr)
     return 2
 

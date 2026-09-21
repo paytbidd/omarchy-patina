@@ -6,6 +6,8 @@
 
 applied = true
 
+# Corner preset: sharp (0px, Omarchy) | soft (6px) | round (12px)
+corners = "soft"
 rounding = 6
 border_size = 2
 # Gap preset: tight | default | loose

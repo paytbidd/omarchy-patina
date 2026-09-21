@@ -2,9 +2,11 @@
 
 Reusable window chrome for any [Omarchy](https://omarchy.org/) theme: slight rounding, a 2px border, tight even gaps around the screen and between tiles, a mixed unfocused border, and a **soft hue-matched glow**.
 
-Toggle it from **Super+Space → Style → Patina**. Turning it off restores the stock theme look. Removing the plugin takes the Style row with it.
+Open the control panel from **Super+Space → Style → Patina**. Turning Patina off restores the stock theme look.
 
-Gap spacing is **Super+Space → Style → Gaps**:
+The panel sets gaps, corner radius, border width, and glow on this machine.
+
+Gap spacing is also **Super+Space → Style → Gaps**:
 
 | Preset | Between tiles | To the screen edge |
 | --- | --- | --- |
@@ -44,14 +46,21 @@ Numbers live in `~/.config/omarchy/patina.toml`. Glow alphas default to 60% of t
 Super+Space → Style → Patina, or:
 
 ```bash
+omarchy-patina panel
 omarchy-patina toggle
-omarchy-patina on
-omarchy-patina off
-omarchy-patina --enabled
-omarchy-patina gaps tight
-omarchy-patina gaps default
-omarchy-patina gaps loose
+omarchy-patina gaps tight|default|loose
+omarchy-patina corners sharp|soft|round
+omarchy-patina set glow off
+omarchy-patina set border-size 3
 ```
+
+| Corners | Radius |
+| --- | --- |
+| Sharp | 0px (Omarchy) |
+| Soft | 6px |
+| Round | 12px |
+
+Border width is 1–16px. Glow is on/off.
 
 ## Unapply
 

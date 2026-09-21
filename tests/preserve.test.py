@@ -88,6 +88,7 @@ class MenuTests(unittest.TestCase):
             self.assertEqual(data["style.gaps.tight"]["label"], "Tight")
             self.assertEqual(data["style.gaps.default"]["label"], "Default")
             self.assertEqual(data["style.gaps.loose"]["label"], "Loose")
+            self.assertIn("panel", data["style.patina"]["action"])
 
     def test_keeps_custom_theme_row_with_label(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -171,6 +172,32 @@ class GapPresetTests(unittest.TestCase):
                 "gaps_out_bottom = 10\ngaps_out_left = 10\n"
             )
             self.assertEqual(lib.current_gap_preset(path), "default")
+
+
+class RoundingPresetTests(unittest.TestCase):
+    def test_sharp_soft_round(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "patina.toml"
+            path.write_text("applied = true\n")
+            lib.set_rounding_preset(path, "sharp")
+            self.assertEqual(lib.current_rounding_preset(path), "sharp")
+            self.assertEqual(lib._root_toml_map(path)["rounding"], 0)
+            lib.set_rounding_preset(path, "round")
+            self.assertEqual(lib._root_toml_map(path)["rounding"], 12)
+            lib.set_rounding_preset(path, "soft")
+            self.assertEqual(lib._root_toml_map(path)["rounding"], 6)
+
+    def test_state_roundtrip(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "patina.toml"
+            path.write_text("applied = true\nrounding = 6\nborder_size = 2\nglow = true\n")
+            lib.apply_updates(path, {"gaps": "loose", "corners": "round", "border_size": 8, "glow": False})
+            state = lib.read_state(path)
+            self.assertEqual(state["gaps"], "loose")
+            self.assertEqual(state["corners"], "round")
+            self.assertEqual(state["border_size"], 8)
+            self.assertFalse(state["glow"])
+            self.assertEqual(state["rounding"], 12)
 
 
 class FlagWriteTests(unittest.TestCase):
