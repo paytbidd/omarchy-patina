@@ -16,10 +16,10 @@ Item {
   property bool closingFromHost: false
 
   property bool applied: true
-  property string gaps: "tight"
+  property string gaps: "default"
   property string corners: "soft"
   property int borderSize: 2
-  property bool glow: true
+  property bool glow: false
   property bool applying: false
   property var queuedSet: null
 

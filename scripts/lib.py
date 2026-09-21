@@ -207,6 +207,8 @@ def current_rounding_preset(toml_path: Path) -> str:
     if named in ROUNDING_PRESETS:
         return named
     rounding = data.get("rounding")
+    if rounding is None and not named:
+        return "soft"
     for name, value in ROUNDING_PRESETS.items():
         if rounding == value:
             return name
@@ -231,7 +233,7 @@ def read_state(toml_path: Path) -> dict:
         applied = True
     glow = data.get("glow")
     if glow is None:
-        glow = True
+        glow = False
     try:
         rounding = int(data.get("rounding", 6))
     except (TypeError, ValueError):
@@ -286,6 +288,8 @@ def current_gap_preset(toml_path: Path) -> str:
         return named
     inner = [data.get(key) for key, side in GAP_SIDES if side == "in"]
     outer = [data.get(key) for key, side in GAP_SIDES if side == "out"]
+    if not named and all(v is None for v in inner + outer):
+        return "default"
     for name, sizes in GAP_PRESETS.items():
         if inner and all(v == sizes["in"] for v in inner) and outer and all(
             v == sizes["out"] for v in outer

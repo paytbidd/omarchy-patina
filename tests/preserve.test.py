@@ -143,6 +143,31 @@ class TweaksTests(unittest.TestCase):
             self.assertIn("patina.toml", text)
 
 
+class InstallTemplateTests(unittest.TestCase):
+    def test_first_install_defaults(self):
+        data = lib._root_toml_map(ROOT / "config" / "patina.toml")
+        self.assertEqual(data["gaps"], "default")
+        self.assertEqual(data["corners"], "soft")
+        self.assertEqual(data["rounding"], 6)
+        self.assertEqual(data["border_size"], 2)
+        self.assertFalse(data["glow"])
+        self.assertEqual(data["gaps_in_top"], 5)
+        self.assertEqual(data["gaps_in_left"], 5)
+        self.assertEqual(data["gaps_out_top"], 10)
+        self.assertEqual(data["gaps_out_left"], 10)
+
+    def test_read_state_defaults_match_install(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "patina.toml"
+            path.write_text("applied = true\n")
+            state = lib.read_state(path)
+        self.assertEqual(state["gaps"], "default")
+        self.assertEqual(state["corners"], "soft")
+        self.assertEqual(state["rounding"], 6)
+        self.assertEqual(state["border_size"], 2)
+        self.assertFalse(state["glow"])
+
+
 class GapPresetTests(unittest.TestCase):
     def test_set_tight_default_loose(self):
         with tempfile.TemporaryDirectory() as tmp:

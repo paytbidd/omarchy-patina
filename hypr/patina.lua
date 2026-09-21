@@ -199,11 +199,11 @@ end
 
 local function preset_gap(kind)
   local name = tweaks.gaps
-  if name == "default" then
+  if name == "tight" then
     if kind == "in" then
-      return 5
+      return 2
     end
-    return 10
+    return 2
   end
   if name == "loose" then
     if kind == "in" then
@@ -211,7 +211,11 @@ local function preset_gap(kind)
     end
     return 20
   end
-  return 2
+  -- default (Omarchy stock) and missing gaps key
+  if kind == "in" then
+    return 5
+  end
+  return 10
 end
 
 local gap_in = preset_gap("in")
@@ -235,7 +239,7 @@ if saturate_accent == nil then
 end
 local glow_enabled = tweaks.glow
 if glow_enabled == nil then
-  glow_enabled = true
+  glow_enabled = false
 end
 
 local function managed(key)

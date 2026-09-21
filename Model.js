@@ -1,11 +1,11 @@
 function parseState(raw) {
   var state = {
     applied: true,
-    gaps: "tight",
+    gaps: "default",
     corners: "soft",
     rounding: 6,
     border_size: 2,
-    glow: true
+    glow: false
   }
   try {
     var parsed = JSON.parse(String(raw || "{}"))
