@@ -183,6 +183,10 @@ Item {
       waitForEnd: true
       onStreamFinished: if (text) root.applyState(text)
     }
+    stderr: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: if (text) console.warn("patina set:", text)
+    }
     onRunningChanged: {
       if (running) return
       root.applying = false

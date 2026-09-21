@@ -274,10 +274,20 @@ cmd_get() {
   python3 "$LIB" state-get "$PATINA_TOML"
 }
 
+json_payload() {
+  # ${1:-{}} is not safe: bash treats the inner } as the end of the
+  # expansion, so a real JSON object is passed on with a trailing }.
+  if [[ -n ${1-} ]]; then
+    printf '%s' "$1"
+  else
+    printf '{}'
+  fi
+}
+
 cmd_set() {
   ensure_patina_toml
   if [[ ${1:-} == --json ]]; then
-    python3 "$LIB" state-set "$PATINA_TOML" "${2:-{}}"
+    python3 "$LIB" state-set "$PATINA_TOML" "$(json_payload "${2-}")"
   else
     python3 "$LIB" state-set-args "$PATINA_TOML" "$@"
   fi

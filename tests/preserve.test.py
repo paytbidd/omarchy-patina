@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 import json
+import os
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -210,6 +212,36 @@ class FlagWriteTests(unittest.TestCase):
             self.assertIn("rounding = 6", text)
             self.assertIn("manage_rounding = false", text)
             self.assertIn("manage_glow = true", text)
+
+
+class CliSetJsonTests(unittest.TestCase):
+    def test_bash_default_object_does_not_append_brace(self):
+        script = (ROOT / "scripts/omarchy-patina").read_text()
+        self.assertNotIn("${2:-{}}", script)
+
+    def test_set_json_writes_gaps_and_glow(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            (tmp_path / "omarchy").mkdir()
+            (tmp_path / "bin").mkdir()
+            hyprctl = tmp_path / "bin" / "hyprctl"
+            hyprctl.write_text("#!/bin/bash\nexit 0\n")
+            hyprctl.chmod(0o755)
+            env = os.environ.copy()
+            env["XDG_CONFIG_HOME"] = str(tmp_path)
+            env["PATH"] = f"{tmp_path / 'bin'}:{env['PATH']}"
+            subprocess.check_call(
+                [
+                    str(ROOT / "scripts/omarchy-patina"),
+                    "set",
+                    "--json",
+                    '{"gaps":"loose","glow":false}',
+                ],
+                env=env,
+            )
+            state = lib.read_state(tmp_path / "omarchy" / "patina.toml")
+            self.assertEqual(state["gaps"], "loose")
+            self.assertFalse(state["glow"])
 
 
 if __name__ == "__main__":
