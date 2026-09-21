@@ -266,6 +266,33 @@ cmd_status() {
   else
     echo "patina:  off"
   fi
+  echo "gaps:    $(python3 "$LIB" gaps-get "$PATINA_TOML")"
+}
+
+cmd_gaps() {
+  local preset="${1:-}"
+  case "$preset" in
+    "" | --get)
+      python3 "$LIB" gaps-get "$PATINA_TOML"
+      ;;
+    --is)
+      python3 "$LIB" gaps-is "$PATINA_TOML" "${2:-}"
+      ;;
+    tight | default | loose)
+      ensure_patina_toml
+      python3 "$LIB" gaps-set "$PATINA_TOML" "$preset"
+      reload_hypr
+      local label="$preset"
+      if [[ $preset == default ]]; then
+        label="default (Omarchy)"
+      fi
+      notify "Gaps: $label"
+      echo "Gaps: $label"
+      ;;
+    *)
+      fail "unknown gap preset '$preset' (tight, default, loose)"
+      ;;
+  esac
 }
 
 cmd_on() {
@@ -346,12 +373,13 @@ cmd_unapply() {
 
 usage() {
   cat <<EOF
-Usage: omarchy-patina {apply|unapply [--purge]|on|off|toggle|refresh|status|--enabled}
+Usage: omarchy-patina {apply|unapply [--purge]|on|off|toggle|gaps|refresh|status|--enabled}
 
   apply             Wire Hyprland, the Style menu, and a theme-set hook, then enable
   unapply           Remove wiring and turn chrome off
   unapply --purge   Also remove the payton.patina plugin
   on | off | toggle Enable or disable chrome (Style → Patina)
+  gaps [tight|default|loose]  Set or print the gap preset (Style → Gaps)
   refresh           Reload Hyprland if Patina is on (theme-set hook)
   status            Show whether Patina is wired and enabled
   --enabled         Exit 0 if chrome is on
@@ -366,6 +394,7 @@ case "${1:-}" in
     ;;
   off | clear) cmd_off ;;
   toggle) cmd_toggle ;;
+  gaps) cmd_gaps "${2:-}" "${3:-}" ;;
   refresh) cmd_refresh ;;
   status) cmd_status ;;
   --enabled)

@@ -176,17 +176,37 @@ end
 
 local rounding = tweaks.rounding or 6
 local border_size = tweaks.border_size or 2
+
+local function preset_gap(kind)
+  local name = tweaks.gaps
+  if name == "default" then
+    if kind == "in" then
+      return 5
+    end
+    return 10
+  end
+  if name == "loose" then
+    if kind == "in" then
+      return 10
+    end
+    return 20
+  end
+  return 2
+end
+
+local gap_in = preset_gap("in")
+local gap_out = preset_gap("out")
 local gaps_out = {
-  top = tweaks.gaps_out_top or 2,
-  right = tweaks.gaps_out_right or 2,
-  bottom = tweaks.gaps_out_bottom or 2,
-  left = tweaks.gaps_out_left or 2,
+  top = tweaks.gaps_out_top or gap_out,
+  right = tweaks.gaps_out_right or gap_out,
+  bottom = tweaks.gaps_out_bottom or gap_out,
+  left = tweaks.gaps_out_left or gap_out,
 }
 local gaps_in = {
-  top = tweaks.gaps_in_top or 2,
-  right = tweaks.gaps_in_right or 2,
-  bottom = tweaks.gaps_in_bottom or 2,
-  left = tweaks.gaps_in_left or 2,
+  top = tweaks.gaps_in_top or gap_in,
+  right = tweaks.gaps_in_right or gap_in,
+  bottom = tweaks.gaps_in_bottom or gap_in,
+  left = tweaks.gaps_in_left or gap_in,
 }
 local inactive_mix = tweaks.inactive_mix or 0.15
 local saturate_accent = tweaks.saturate_accent

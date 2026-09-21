@@ -4,6 +4,14 @@ Reusable window chrome for any [Omarchy](https://omarchy.org/) theme: slight rou
 
 Toggle it from **Super+Space → Style → Patina**. Turning it off restores the stock theme look. Removing the plugin takes the Style row with it.
 
+Gap spacing is **Super+Space → Style → Gaps**:
+
+| Preset | Between tiles | To the screen edge |
+| --- | --- | --- |
+| Tight | 2px | 2px |
+| Default | 5px (Omarchy) | 10px (Omarchy) |
+| Loose | 10px | 20px |
+
 ## Install
 
 One shot:
@@ -40,6 +48,9 @@ omarchy-patina toggle
 omarchy-patina on
 omarchy-patina off
 omarchy-patina --enabled
+omarchy-patina gaps tight
+omarchy-patina gaps default
+omarchy-patina gaps loose
 ```
 
 ## Unapply

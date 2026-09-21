@@ -75,10 +75,18 @@ def manage_flags(hypr_dir: Path) -> dict[str, bool]:
     }
 
 
-def upsert_toml_flags(toml_path: Path, flags: dict[str, bool]) -> None:
+def _toml_literal(value) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, int) and not isinstance(value, bool):
+        return str(value)
+    return json.dumps(str(value), ensure_ascii=False)
+
+
+def upsert_toml_root(toml_path: Path, values: dict) -> None:
     text = toml_path.read_text(encoding="utf-8") if toml_path.exists() else ""
     lines = text.splitlines(keepends=True)
-    remaining = dict(flags)
+    remaining = dict(values)
     out: list[str] = []
     in_section = False
     for line in lines:
@@ -87,10 +95,9 @@ def upsert_toml_flags(toml_path: Path, flags: dict[str, bool]) -> None:
             in_section = True
         key = stripped.split("=", 1)[0].strip() if "=" in stripped else ""
         if not in_section and key in remaining:
-            val = "true" if remaining.pop(key) else "false"
             prefix = line[: len(line) - len(line.lstrip())]
             newline = "\n" if line.endswith("\n") else ""
-            out.append(f"{prefix}{key} = {val}{newline}")
+            out.append(f"{prefix}{key} = {_toml_literal(remaining.pop(key))}{newline}")
             continue
         out.append(line)
     if remaining:
@@ -98,13 +105,94 @@ def upsert_toml_flags(toml_path: Path, flags: dict[str, bool]) -> None:
         extra = []
         if body and not body.endswith("\n"):
             extra.append("\n")
-        extra.append(
-            "\n# false = already set in your Hyprland looknfeel; Patina leaves it alone.\n"
-        )
+        extra.append("\n")
         for key, value in remaining.items():
-            extra.append(f"{key} = {'true' if value else 'false'}\n")
+            extra.append(f"{key} = {_toml_literal(value)}\n")
         out.extend(extra)
     toml_path.write_text("".join(out), encoding="utf-8")
+
+
+def upsert_toml_flags(toml_path: Path, flags: dict[str, bool]) -> None:
+    upsert_toml_root(toml_path, flags)
+
+
+GAP_PRESETS = {
+    "tight": {"in": 2, "out": 2},
+    "default": {"in": 5, "out": 10},
+    "loose": {"in": 10, "out": 20},
+}
+
+GAP_SIDES = (
+    ("gaps_in_top", "in"),
+    ("gaps_in_right", "in"),
+    ("gaps_in_bottom", "in"),
+    ("gaps_in_left", "in"),
+    ("gaps_out_top", "out"),
+    ("gaps_out_right", "out"),
+    ("gaps_out_bottom", "out"),
+    ("gaps_out_left", "out"),
+)
+
+
+def gap_preset_values(name: str) -> dict:
+    if name not in GAP_PRESETS:
+        raise ValueError(f"unknown gap preset: {name}")
+    sizes = GAP_PRESETS[name]
+    values = {"gaps": name, "manage_gaps": True}
+    for key, side in GAP_SIDES:
+        values[key] = sizes[side]
+    return values
+
+
+def set_gap_preset(toml_path: Path, name: str) -> None:
+    upsert_toml_root(toml_path, gap_preset_values(name))
+
+
+def _root_toml_map(path: Path) -> dict:
+    data = {}
+    if not path.is_file():
+        return data
+    in_section = False
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("["):
+            in_section = True
+            continue
+        if in_section or "=" not in line:
+            continue
+        key, raw_val = line.split("=", 1)
+        key = key.strip()
+        raw_val = raw_val.split("#", 1)[0].strip()
+        if raw_val in ("true", "false"):
+            data[key] = raw_val == "true"
+        elif raw_val.startswith(("'", '"')) and len(raw_val) >= 2:
+            data[key] = raw_val[1:-1]
+        else:
+            try:
+                data[key] = int(raw_val)
+            except ValueError:
+                try:
+                    data[key] = float(raw_val)
+                except ValueError:
+                    data[key] = raw_val
+    return data
+
+
+def current_gap_preset(toml_path: Path) -> str:
+    data = _root_toml_map(toml_path)
+    named = str(data.get("gaps") or "").strip().lower()
+    if named in GAP_PRESETS:
+        return named
+    inner = [data.get(key) for key, side in GAP_SIDES if side == "in"]
+    outer = [data.get(key) for key, side in GAP_SIDES if side == "out"]
+    for name, sizes in GAP_PRESETS.items():
+        if inner and all(v == sizes["in"] for v in inner) and outer and all(
+            v == sizes["out"] for v in outer
+        ):
+            return name
+    return "custom"
 
 
 def ours_theme_tweaks(text: str) -> bool:
@@ -308,7 +396,7 @@ def upsert_menu(path: Path, action_bin: str) -> None:
     entry = {
         "icon": "󰃌",
         "label": "Patina",
-        "description": "Slight rounding, tight top gaps, and a soft hue-matched glow",
+        "description": "Slight rounding, gap presets, and a soft hue-matched glow",
         "aliases": [
             "patina",
             "polish",
@@ -320,6 +408,49 @@ def upsert_menu(path: Path, action_bin: str) -> None:
         "checked": f"{action_bin} --enabled",
     }
     text = insert_jsonc_key(text, "style.patina", entry)
+    text = insert_jsonc_key(
+        text,
+        "style.gaps",
+        {
+            "icon": "",
+            "label": "Gaps",
+            "description": "Space between tiles and the screen edge",
+            "aliases": ["gaps", "window gaps", "padding", "tight gaps", "loose gaps"],
+        },
+    )
+    text = insert_jsonc_key(
+        text,
+        "style.gaps.tight",
+        {
+            "icon": "",
+            "label": "Tight",
+            "description": "2px between tiles and around the screen",
+            "action": f"{action_bin} gaps tight",
+            "checked": f"{action_bin} gaps --is tight",
+        },
+    )
+    text = insert_jsonc_key(
+        text,
+        "style.gaps.default",
+        {
+            "icon": "",
+            "label": "Default",
+            "description": "Omarchy default: 5px between tiles, 10px to the edge",
+            "action": f"{action_bin} gaps default",
+            "checked": f"{action_bin} gaps --is default",
+        },
+    )
+    text = insert_jsonc_key(
+        text,
+        "style.gaps.loose",
+        {
+            "icon": "",
+            "label": "Loose",
+            "description": "10px between tiles, 20px to the edge",
+            "action": f"{action_bin} gaps loose",
+            "checked": f"{action_bin} gaps --is loose",
+        },
+    )
     path.parent.mkdir(parents=True, exist_ok=True)
     if not text.endswith("\n"):
         text += "\n"
@@ -330,7 +461,15 @@ def remove_menu_patina(path: Path) -> None:
     if not path.exists():
         return
     text = path.read_text(encoding="utf-8")
-    for key in ("style.patina", "style.polish", "style.smart-tweaks"):
+    for key in (
+        "style.gaps.tight",
+        "style.gaps.default",
+        "style.gaps.loose",
+        "style.gaps",
+        "style.patina",
+        "style.polish",
+        "style.smart-tweaks",
+    ):
         text = remove_jsonc_key(text, key)
     path.write_text(text, encoding="utf-8")
 
@@ -359,6 +498,14 @@ def main(argv: list[str]) -> int:
     if cmd == "menu-remove":
         remove_menu_patina(Path(argv[2]))
         return 0
+    if cmd == "gaps-set":
+        set_gap_preset(Path(argv[2]), argv[3])
+        return 0
+    if cmd == "gaps-get":
+        sys.stdout.write(current_gap_preset(Path(argv[2])) + "\n")
+        return 0
+    if cmd == "gaps-is":
+        return 0 if current_gap_preset(Path(argv[2])) == argv[3] else 1
     print(f"unknown command: {cmd}", file=sys.stderr)
     return 2
 
