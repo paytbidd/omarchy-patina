@@ -16,14 +16,6 @@ Gap spacing is also **Super+Space → Style → Gaps**:
 
 ## Install
 
-One shot:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/paytbidd/omarchy-patina/main/install | bash
-```
-
-Or the Omarchy form, then apply:
-
 ```bash
 omarchy plugin add https://github.com/paytbidd/omarchy-patina.git --yes --enable
 ~/.config/omarchy/plugins/payton.patina/scripts/omarchy-patina apply
@@ -70,16 +62,13 @@ Chrome off, keep the plugin:
 ~/.config/omarchy/plugins/payton.patina/scripts/omarchy-patina off
 ```
 
-Tweaks off and remove Patina itself:
+## Remove
+
+Turn chrome off, remove Patina’s wiring, then remove the plugin:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/paytbidd/omarchy-patina/main/uninstall | bash
-```
-
-or:
-
-```bash
-~/.config/omarchy/plugins/payton.patina/scripts/omarchy-patina unapply --purge
+~/.config/omarchy/plugins/payton.patina/scripts/omarchy-patina unapply
+omarchy plugin remove payton.patina --yes
 ```
 
 Your `patina.toml` is left in place so a reinstall keeps your numbers.
